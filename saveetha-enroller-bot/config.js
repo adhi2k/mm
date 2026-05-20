@@ -27,7 +27,7 @@ module.exports = {
     "TT DS PYTHON MODULE-V": "64",
     "TT DS PYTHON MODULE-VI": "65",
     "TT DS PYTHON MODULE-VII": "66",
-    "TT DS PYTHON MODULE-VIII": "67",
+    "TT DS PYTHON MODULE-VII": "67",
     "TT DS PYTHON MODULE-IX": "92",
     "TT DS PYTHON MODULE-X": "93",
     "TT DS PYTHON MODULE-XI": "94",
@@ -62,7 +62,9 @@ module.exports = {
     "TT Module - IX": "44",
     "TT Module - X": "47",
     "TT Module - XI": "45",
-    "TT Module - XII": "51"
+    "TT Module - XII": "51",
+    "TT DS PYTHON MODULE - V-B":"151",
+    "TT Module - V NEW":"158"
   },
   delays: {
     pageLoad: 3000,
