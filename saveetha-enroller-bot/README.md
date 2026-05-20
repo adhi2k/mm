@@ -15,16 +15,6 @@ git remote add origin <your-repo-url>
 git push -u origin main
 ```
 
-### 2. Configure GitHub Secrets (Security)
-Never hardcode your password! We use GitHub Secrets to keep your Moodle login safe.
-1. Go to your GitHub Repository in your browser.
-2. Click **Settings** > **Secrets and variables** > **Actions**.
-3. Click **New repository secret**.
-4. In the **Name** box, exactly type: `MOODLE_USERNAME`
-5. In the **Secret** box, type your Moodle username (e.g. `ilavarasan`), then click **Add secret**.
-6. Click **New repository secret** again.
-7. In the **Name** box, exactly type: `MOODLE_PASSWORD`
-8. In the **Secret** box, type your password (e.g. `1504`), then click **Add secret**.
 
 ### 3. Add Students
 You don't need to change any files! The cloud bot is automatically connected to your **Google Sheet** (the same one you used for the Chrome Extension). Just fill out your Google Form, and the GitHub Action will automatically fetch the pending students every 5 minutes and write back "Completed" to the sheet when done!
