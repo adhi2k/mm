@@ -1,14 +1,54 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
-const path = require('path');
+const axios = require('axios');
 const config = require('./config');
 const { sleep, log } = require('./utils');
 
-// Load students from JSON
-const studentsPath = path.join(__dirname, 'students.json');
-let students = [];
-if (fs.existsSync(studentsPath)) {
-  students = JSON.parse(fs.readFileSync(studentsPath, 'utf-8'));
+async function fetchPendingStudents() {
+  log('Fetching pending students from Google Sheet...', 'INFO');
+  try {
+    const res = await axios.get(config.urls.webAppUrl);
+    const result = res.data;
+    
+    if (!result.success) throw new Error(result.error);
+    
+    let expandedQueue = [];
+    result.data.forEach(item => {
+      const regs = item.regNo.toString().split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+      const mods = item.moduleName.toString().split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+
+      let subTasks = [];
+      regs.forEach(r => {
+        mods.forEach(m => {
+          subTasks.push({ regNo: r, moduleName: m, success: false, error: null });
+        });
+      });
+
+      if (subTasks.length > 0) {
+        expandedQueue.push({
+          rowNumber: item.rowNumber,
+          subTasks: subTasks
+        });
+      }
+    });
+    return expandedQueue;
+  } catch (error) {
+    log(`Failed to fetch from Google Sheets: ${error.message}`, 'ERROR');
+    return [];
+  }
+}
+
+async function updateSheetStatus(rowNumber, status) {
+  log(`Updating row ${rowNumber} with status: ${status}`, 'INFO');
+  try {
+    const res = await axios.post(config.urls.webAppUrl, {
+      rowNumber: rowNumber,
+      status: status
+    });
+    if (!res.data.success) throw new Error(res.data.error);
+  } catch (error) {
+    log(`Failed to update Google Sheet: ${error.message}`, 'ERROR');
+  }
 }
 
 async function login(page) {
@@ -19,7 +59,7 @@ async function login(page) {
   const password = process.env.MOODLE_PASSWORD;
 
   if (!username || !password) {
-    throw new Error('Credentials not found in environment variables. Please set MOODLE_USERNAME and MOODLE_PASSWORD.');
+    throw new Error('Credentials not found in environment variables. Please set MOODLE_USERNAME and MOODLE_PASSWORD in GitHub Secrets.');
   }
 
   log('Filling login credentials...', 'INFO');
@@ -35,8 +75,7 @@ async function login(page) {
   log('Login successful!', 'SUCCESS');
 }
 
-async function enrollStudent(page, student) {
-  const { regNo, moduleName } = student;
+async function enrollStudent(page, studentRegNo, moduleName) {
   const courseId = config.courseMapping[moduleName];
 
   if (!courseId) {
@@ -50,23 +89,20 @@ async function enrollStudent(page, student) {
   await sleep(config.delays.pageLoad);
 
   log(`Clicking initial enroll button...`, 'INFO');
-  // Use Playwright's auto-waiting to click the button
   await page.click(config.selectors.initialEnrollBtn);
 
-  log(`Typing registration number: ${regNo}`, 'INFO');
-  await page.fill(config.selectors.searchInput, regNo);
+  log(`Typing registration number: ${studentRegNo}`, 'INFO');
+  await page.fill(config.selectors.searchInput, studentRegNo);
 
   await sleep(config.delays.searchWait);
 
-  // Bonus Feature: Already Enrolled / Duplicate Prevention
   log(`Waiting for search results...`, 'INFO');
   try {
-    // Wait for the autocomplete suggestion to appear
     await page.waitForSelector(config.selectors.searchResultOption, { timeout: 5000 });
     await page.click(config.selectors.searchResultOption);
   } catch (error) {
-    log(`No search results for ${regNo}. They might already be enrolled or the ID is invalid. Skipping.`, 'WARNING');
-    return; // Exit successfully, they are already enrolled
+    log(`No search results for ${studentRegNo}. They might already be enrolled or the ID is invalid. Skipping.`, 'WARNING');
+    return; // Exit successfully
   }
 
   await sleep(config.delays.actionWait);
@@ -75,72 +111,76 @@ async function enrollStudent(page, student) {
   await page.click(config.selectors.finalEnrollBtn);
 
   await sleep(config.delays.actionWait);
-  
-  // Verify success
-  try {
-    await page.waitForSelector(config.selectors.successMessage, { timeout: 5000 });
-    log(`Success message verified for ${regNo}`, 'INFO');
-  } catch(e) {
-    log(`No explicit success message found, but workflow completed for ${regNo}`, 'WARNING');
-  }
-
-  log(`Successfully completed enrollment workflow for ${regNo}`, 'SUCCESS');
+  log(`Successfully completed enrollment workflow for ${studentRegNo}`, 'SUCCESS');
 }
 
 async function main() {
-  if (students.length === 0) {
-    log('No students found in students.json', 'INFO');
+  const enrollmentQueue = await fetchPendingStudents();
+
+  if (enrollmentQueue.length === 0) {
+    log('No pending students found in Google Sheet.', 'INFO');
     return;
   }
 
-  log(`Starting automation for ${students.length} students.`, 'INFO');
+  log(`Found ${enrollmentQueue.length} row(s) to process.`, 'INFO');
 
-  // Launch Chromium
-  // Headless mode is true by default in Playwright, perfect for GitHub Actions
-  const browser = await chromium.launch({
-    headless: true
-  });
-  
+  const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  // Create screenshots directory for error handling
-  if (!fs.existsSync('./screenshots')) {
-    fs.mkdirSync('./screenshots');
-  }
+  if (!fs.existsSync('./screenshots')) fs.mkdirSync('./screenshots');
 
   try {
     await login(page);
 
-    for (let i = 0; i < students.length; i++) {
-      const student = students[i];
-      log(`--- Processing Student ${i + 1}/${students.length}: ${student.regNo} ---`, 'INFO');
+    for (let i = 0; i < enrollmentQueue.length; i++) {
+      const currentRow = enrollmentQueue[i];
+      log(`--- Processing Sheet Row ${currentRow.rowNumber} ---`, 'INFO');
       
-      let attempts = 0;
-      const maxAttempts = 2; // Retry logic (1 retry)
-      let success = false;
+      for (let j = 0; j < currentRow.subTasks.length; j++) {
+        const task = currentRow.subTasks[j];
+        log(`Task ${j+1}/${currentRow.subTasks.length}: Enrolling ${task.regNo} into ${task.moduleName}`, 'INFO');
+        
+        let attempts = 0;
+        const maxAttempts = 2;
+        let success = false;
 
-      while (attempts < maxAttempts && !success) {
-        attempts++;
-        try {
-          await enrollStudent(page, student);
-          success = true;
-        } catch (error) {
-          log(`Attempt ${attempts} failed for ${student.regNo}: ${error.message}`, 'ERROR');
-          
-          // Bonus Feature: Screenshot on failure
-          const screenshotPath = `./screenshots/error-${student.regNo}-attempt${attempts}.png`;
-          await page.screenshot({ path: screenshotPath });
-          log(`Saved error screenshot to ${screenshotPath}`, 'INFO');
+        while (attempts < maxAttempts && !success) {
+          attempts++;
+          try {
+            await enrollStudent(page, task.regNo, task.moduleName);
+            task.success = true;
+            success = true;
+          } catch (error) {
+            task.error = error.message;
+            log(`Attempt ${attempts} failed for ${task.regNo}: ${error.message}`, 'ERROR');
+            
+            const screenshotPath = `./screenshots/error-${task.regNo}-attempt${attempts}.png`;
+            await page.screenshot({ path: screenshotPath });
+            log(`Saved error screenshot to ${screenshotPath}`, 'INFO');
 
-          if (attempts < maxAttempts) {
-            log(`Retrying in 5 seconds...`, 'INFO');
-            await sleep(5000);
-          } else {
-            log(`Max retries reached for ${student.regNo}. Skipping.`, 'ERROR');
+            if (attempts < maxAttempts) {
+              log(`Retrying in 5 seconds...`, 'INFO');
+              await sleep(5000);
+            }
           }
         }
       }
+
+      // Check subtask success to write final status back to Sheet
+      const failedTasks = currentRow.subTasks.filter(t => !t.success);
+      let finalStatus = 'Completed';
+
+      if (failedTasks.length > 0) {
+        if (failedTasks.length === currentRow.subTasks.length) {
+          finalStatus = `Failed All: ${failedTasks[0].error}`;
+        } else {
+          const failedRegs = [...new Set(failedTasks.map(f => f.regNo))].join(', ');
+          finalStatus = `Partial Success (Failed: ${failedRegs})`;
+        }
+      }
+
+      await updateSheetStatus(currentRow.rowNumber, finalStatus);
     }
   } catch (error) {
     log(`CRITICAL ERROR: ${error.message}`, 'ERROR');

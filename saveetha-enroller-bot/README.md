@@ -20,15 +20,18 @@ Never hardcode your password! We use GitHub Secrets to keep your Moodle login sa
 1. Go to your GitHub Repository in your browser.
 2. Click **Settings** > **Secrets and variables** > **Actions**.
 3. Click **New repository secret**.
-4. Add `MOODLE_USERNAME` (e.g., `ilavarasan`).
-5. Add `MOODLE_PASSWORD` (e.g., `1504`).
+4. In the **Name** box, exactly type: `MOODLE_USERNAME`
+5. In the **Secret** box, type your Moodle username (e.g. `ilavarasan`), then click **Add secret**.
+6. Click **New repository secret** again.
+7. In the **Name** box, exactly type: `MOODLE_PASSWORD`
+8. In the **Secret** box, type your password (e.g. `1504`), then click **Add secret**.
 
 ### 3. Add Students
-Edit the `students.json` file with the registration numbers and modules you want to enroll. Push the updated `students.json` file to GitHub whenever you want to process a new batch.
+You don't need to change any files! The cloud bot is automatically connected to your **Google Sheet** (the same one you used for the Chrome Extension). Just fill out your Google Form, and the GitHub Action will automatically fetch the pending students every 5 minutes and write back "Completed" to the sheet when done!
 
 ### 4. Enable GitHub Actions
 1. Go to the **Actions** tab in your repository.
-2. Click **I understand my workflows, go ahead and enable them**.
+2. Click **I understand my workflows, go ahead and enable them**. 
 3. The script is now configured to run automatically every 5 minutes.
 
 ### 5. Running Manually
@@ -48,14 +51,3 @@ If you want to test the Playwright script on your laptop before pushing to GitHu
 - If a student fails to enroll, the bot will automatically retry once.
 - If it fails again, it will take a screenshot.
 - You can view the logs and download the screenshots by clicking on the completed Action run in GitHub and downloading the `automation-artifacts.zip` file at the bottom of the summary page.
-
-## Bonus: Google Sheets API Integration
-Currently, this system reads from a hardcoded `students.json` file. To connect it directly to your existing Google Apps Script:
-1. In `index.js`, install `axios` (`npm install axios`).
-2. Replace the `students` array loading logic with:
-```javascript
-const axios = require('axios');
-const response = await axios.get('YOUR_WEB_APP_URL');
-const students = response.data.data;
-```
-3. Use an `axios.post` request at the end of the `enrollStudent` function to write "Completed" back to your Google Sheet!

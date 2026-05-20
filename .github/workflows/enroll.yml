@@ -20,12 +20,15 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
+        working-directory: ./saveetha-enroller-bot
         run: npm install
 
       - name: Install Playwright Browsers
+        working-directory: ./saveetha-enroller-bot
         run: npx playwright install chromium --with-deps
 
       - name: Run Enrollment Script
+        working-directory: ./saveetha-enroller-bot
         env:
           # Injected from GitHub Secrets
           MOODLE_USERNAME: ${{ secrets.MOODLE_USERNAME }}
@@ -39,6 +42,6 @@ jobs:
         with:
           name: automation-artifacts
           path: |
-            screenshots/
-            logs/
+            saveetha-enroller-bot/screenshots/
+            saveetha-enroller-bot/logs/
           retention-days: 5

@@ -3,7 +3,8 @@
 module.exports = {
   urls: {
     login: 'http://training.saveetha.in/login/index.php',
-    baseCourseUrl: 'http://training.saveetha.in/user/index.php?id='
+    baseCourseUrl: 'http://training.saveetha.in/user/index.php?id=',
+    webAppUrl: 'https://script.google.com/macros/s/AKfycbxQLmOYSaaNaMxqA68rddM6JfEc3rYU3xPSYIVHw_jIGC0QeJv4QWYwWeuS_i8q_fhb/exec'
   },
   selectors: {
     // Login
