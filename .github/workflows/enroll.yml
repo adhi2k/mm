@@ -2,7 +2,7 @@ name: Saveetha Enroller Automation
 
 on:
   schedule:
-    # Runs every 5 minutes (Note: GitHub Actions scheduler can sometimes be delayed)
+    # Runs every 5 minutes
     - cron: '*/5 * * * *'
   workflow_dispatch: # Allows manual trigger from GitHub Actions UI
 
@@ -20,25 +20,40 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: saveetha-enroller-bot/package-lock.json
 
       - name: Install Dependencies
         working-directory: ./saveetha-enroller-bot
-        run: npm install
+        run: npm ci
 
-      - name: Install Playwright Browsers
+      # Cache the Playwright Chromium browser binary so it's not re-downloaded every run
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('saveetha-enroller-bot/package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: ./saveetha-enroller-bot
         run: npx playwright install chromium --with-deps
+
+      # If using cache, still need system deps but NOT the browser download
+      - name: Install System Deps Only (if cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: ./saveetha-enroller-bot
+        run: npx playwright install-deps chromium
 
       - name: Run Enrollment Script
         working-directory: ./saveetha-enroller-bot
         env:
-          # Injected from GitHub Secrets
           MOODLE_USERNAME: ${{ secrets.MOODLE_USERNAME }}
           MOODLE_PASSWORD: ${{ secrets.MOODLE_PASSWORD }}
         run: npm start
 
       - name: Upload Error Screenshots and Logs
-        # Uploads artifacts even if the workflow fails
         if: failure() || success()
         uses: actions/upload-artifact@v4
         with:
