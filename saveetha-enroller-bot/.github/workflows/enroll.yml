@@ -1,0 +1,44 @@
+name: Saveetha Enroller Automation
+
+on:
+  schedule:
+    # Runs every 5 minutes (Note: GitHub Actions scheduler can sometimes be delayed)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  enroll:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Enrollment Script
+        env:
+          # Injected from GitHub Secrets
+          MOODLE_USERNAME: ${{ secrets.MOODLE_USERNAME }}
+          MOODLE_PASSWORD: ${{ secrets.MOODLE_PASSWORD }}
+        run: npm start
+
+      - name: Upload Error Screenshots and Logs
+        # Uploads artifacts even if the workflow fails
+        if: failure() || success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-artifacts
+          path: |
+            screenshots/
+            logs/
+          retention-days: 5

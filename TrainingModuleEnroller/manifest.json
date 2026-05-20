@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Training Module Enroller",
+  "version": "1.0",
+  "description": "Automates student enrollment in Saveetha Moodle",
+  "permissions": [
+    "scripting",
+    "tabs",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://training.saveetha.in/*",
+    "https://script.google.com/*",
+    "https://script.googleusercontent.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

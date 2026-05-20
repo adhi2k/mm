@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Training Enroller</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Moodle Auto-Enroller</h2>
+    <div class="status-panel">
+      <div id="statusIndicator" class="status-dot"></div>
+      <span id="statusText">Idle (Waiting for 1-min Auto-Sync)</span>
+    </div>
+    
+    <div class="progress-section">
+      <p id="currentStudent">No active task</p>
+    </div>
+
+    <div class="controls">
+      <button id="syncBtn" class="btn btn-primary">Force Sync Now</button>
+      <button id="stopBtn" class="btn btn-danger" style="display:none;">Stop Process</button>
+    </div>
+
+    <div class="log-section">
+      <h3>Recent Activity</h3>
+      <ul id="logList"></ul>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
