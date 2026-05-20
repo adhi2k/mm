@@ -62,13 +62,7 @@ const CONFIG = {
     // Add more courses here following the same pattern
   },
 
-  // ==========================================
-  // 3. AUTO-LOGIN CREDENTIALS
-  // ==========================================
-  credentials: {
-    username: "ilavarasan",
-    password: "1504"
-  },
+
 
   // ==========================================
   // 4. CSS SELECTORS
