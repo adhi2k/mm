@@ -3,7 +3,7 @@ name: Saveetha Enroller Automation
 on:
   schedule:
     # Runs every 5 minutes
-    - cron: '*/5 * * * *'
+    - cron: '*/100 * * * *'
   workflow_dispatch: # Allows manual trigger from GitHub Actions UI
 
 jobs:
