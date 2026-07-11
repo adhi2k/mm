@@ -34,7 +34,7 @@ If you want to trigger it immediately without waiting 5 minutes:
 If you want to test the Playwright script on your laptop before pushing to GitHub:
 1. Install Node.js.
 2. Open a terminal in this folder and run `npm install`.
-3. Set your environment variables (Windows PowerShell: `$env:MOODLE_USERNAME="ilavarasan"; $env:MOODLE_PASSWORD="yourpassword"`).
+3. Set your environment variables (Windows PowerShell: `$env:MOODLE_USERNAME="your_username"; $env:MOODLE_PASSWORD="yourpassword"`).
 4. Run `npm start`.
 
 ## Troubleshooting & Logs
